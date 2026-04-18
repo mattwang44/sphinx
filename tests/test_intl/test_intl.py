@@ -414,6 +414,50 @@ def test_text_refs_reordered_no_warning(app: SphinxTestApp) -> None:
 
 
 @sphinx_intl
+@pytest.mark.sphinx('text', testroot='intl')
+@pytest.mark.test_params(shared_result='test_intl_basic')
+def test_text_refs_translated_display_no_warning(app: SphinxTestApp) -> None:
+    """Issue #14162 cases 2, 3, 4 for hyperlink ``reference`` nodes.
+
+    - Case 2: bare refname → embedded alias with same target
+    - Case 3: explicit target preserved, display text translated
+    - Case 4: refname entirely translated (orphan-fixup repairs the link)
+
+    None of these must emit ``i18n.inconsistent_references`` warnings.
+    """
+    app.build()
+    result = (app.outdir / 'refs_translated_display.txt').read_text(encoding='utf8')
+    assert 'ADD TRANSLATED DISPLAY TEXT TO BARE HYPERLINK' in result
+    assert 'TRANSLATE DISPLAY TEXT, PRESERVE TARGET' in result
+    assert 'TRANSLATE THE REFNAME ENTIRELY' in result
+
+    warnings = getwarning(app.warning)
+    unexpected_warning_expr = (
+        '.*/refs_translated_display.txt.*inconsistent.*references'
+    )
+    assert not re.search(unexpected_warning_expr, warnings), (
+        f'Unexpected warning found: {warnings!r}'
+    )
+
+
+@sphinx_intl
+@pytest.mark.sphinx('text', testroot='intl')
+@pytest.mark.test_params(shared_result='test_intl_basic')
+def test_text_refs_embedded_alias_bad_target_warns(app: SphinxTestApp) -> None:
+    """Embedded-alias `text <target_>`_ that points at a new, non-original
+    target MUST warn.  Count matches and the orphan-fixup would silently
+    repair the link, but the translator clearly specified a (bogus) target
+    and we should not hide that.
+    """
+    app.build()
+    warnings = getwarning(app.warning)
+    expected = r'refs_embedded_alias_bug\.txt.*inconsistent.*wrong_'
+    assert re.search(expected, warnings), (
+        f'Expected embedded-alias warning, got: {warnings!r}'
+    )
+
+
+@sphinx_intl
 @pytest.mark.sphinx('gettext', testroot='intl')
 @pytest.mark.test_params(shared_result='test_intl_gettext')
 def test_gettext_section(app: SphinxTestApp) -> None:

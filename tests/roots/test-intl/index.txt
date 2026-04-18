@@ -34,6 +34,8 @@ CONTENTS
    markup
    backslashes
    refs_reordered
+   refs_translated_display
+   refs_embedded_alias_bug
 
 .. toctree::
    :maxdepth: 2

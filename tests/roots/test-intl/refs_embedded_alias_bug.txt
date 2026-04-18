@@ -1,0 +1,8 @@
+:tocdepth: 2
+
+i18n catches bad embedded-alias target
+=======================================
+
+.. _vectorcall: https://peps.python.org/pep-0590/
+
+1. Good ref: `Improved suggestions <vectorcall_>`_.

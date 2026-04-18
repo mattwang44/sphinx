@@ -48,6 +48,17 @@ logger = logging.getLogger(__name__)
 EXCLUDED_PENDING_XREF_ATTRIBUTES = ('refexplicit',)
 
 
+def _is_embedded_alias(ref: nodes.reference) -> bool:
+    """Return True iff ``ref`` uses embedded-alias syntax `text <target_>`_.
+
+    In the embedded-alias form the display text differs from the refname; in
+    the simple form `text`_ they are the same.
+    """
+    return nodes.fully_normalize_name(ref.astext()) != nodes.fully_normalize_name(
+        ref['refname']
+    )
+
+
 def _publish_msgstr(
     source: str,
     source_path: str,
@@ -282,17 +293,36 @@ class _NodeUpdater:
         is_refnamed_ref = NodeMatcher(nodes.reference, refname=Any)
         old_refs = list(is_refnamed_ref.findall(self.node))
         new_refs = list(is_refnamed_ref.findall(self.patch))
-        self.compare_references(
-            old_refs,
-            new_refs,
-            __(
-                'inconsistent references in translated message.'
-                ' original: {0}, translated: {1}'
-            ),
-        )
-        old_ref_names = [r['refname'] for r in old_refs]
-        new_ref_names = [r['refname'] for r in new_refs]
-        orphans = [*({*old_ref_names} - {*new_ref_names})]
+        # Two-part check:
+        #   1. Count must match -- the orphan-fixup below can only repair
+        #      refname mismatches when the ref counts are equal.
+        #   2. For refs using embedded-alias syntax `text <target_>`_, the
+        #      target must already exist as a refname in the original.  That
+        #      syntax signals "I deliberately specified this target", so a
+        #      new target indicates a translator mistake the fixup cannot
+        #      distinguish from a valid refname translation.  Simple-syntax
+        #      refs `text`_ are fully handled by the orphan-fixup.
+        old_refnames = {r['refname'] for r in old_refs}
+        new_refnames = {r['refname'] for r in new_refs}
+        if not self.noqa:
+            has_unknown_embedded_target = any(
+                _is_embedded_alias(r) and r['refname'] not in old_refnames
+                for r in new_refs
+            )
+            if len(old_refs) != len(new_refs) or has_unknown_embedded_target:
+                logger.warning(
+                    __(
+                        'inconsistent references in translated message.'
+                        ' original: {0}, translated: {1}'
+                    ).format(
+                        [r.rawsource for r in old_refs],
+                        [r.rawsource for r in new_refs],
+                    ),
+                    location=self.node,
+                    type='i18n',
+                    subtype='inconsistent_references',
+                )
+        orphans = [*(old_refnames - new_refnames)]
         for newr in new_refs:
             if not self.document.has_name(newr['refname']):
                 # Maybe refname is translated but target is not translated.

@@ -1,0 +1,13 @@
+:tocdepth: 2
+
+i18n with translated display text for hyperlink references
+===========================================================
+
+.. _vectorcall: https://peps.python.org/pep-0590/
+.. _Documentation bugs: https://github.com/sphinx-doc/sphinx/issues
+
+1. Add translated display text to bare hyperlink: vectorcall_.
+
+2. Translate display text, preserve target: `Improved suggestions <vectorcall_>`_.
+
+3. Translate the refname entirely, target stays untranslated: `Documentation bugs`_.

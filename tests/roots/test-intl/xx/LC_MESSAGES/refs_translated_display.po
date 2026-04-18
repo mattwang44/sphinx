@@ -1,0 +1,31 @@
+# Test for translated display text in hyperlink references.
+# These should NOT trigger inconsistency warnings (issue #14162 cases 2, 3).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sphinx 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: 2024-01-01 00:00+0000\n"
+"Last-Translator: Test\n"
+"Language-Team: xx\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "i18n with translated display text for hyperlink references"
+msgstr "I18N WITH TRANSLATED DISPLAY TEXT FOR HYPERLINK REFERENCES"
+
+# Case 2: bare refname -> embedded alias with same target.
+msgid "Add translated display text to bare hyperlink: vectorcall_."
+msgstr "ADD TRANSLATED DISPLAY TEXT TO BARE HYPERLINK: `TRANSLATED <vectorcall_>`_."
+
+# Case 3: explicit target preserved, display text translated.
+msgid "Translate display text, preserve target: `Improved suggestions <vectorcall_>`_."
+msgstr "TRANSLATE DISPLAY TEXT, PRESERVE TARGET: `SUGERIMENTOS <vectorcall_>`_."
+
+# Case 4: fully translate the refname.  The target `Documentation bugs`
+# remains in the doc; the orphan-fixup rewrites the translated refname
+# back to the original, so the link resolves.
+msgid "Translate the refname entirely, target stays untranslated: `Documentation bugs`_."
+msgstr "TRANSLATE THE REFNAME ENTIRELY, TARGET STAYS UNTRANSLATED: `TRANSLATED DOCUMENTATION BUGS`_."
