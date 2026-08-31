@@ -39,3 +39,9 @@ msgstr "THIS IS A CITATION."
 
 msgid "This is a numbered footnote."
 msgstr "THIS IS A NUMBERED FOOTNOTE."
+
+msgid "an alias must name a known target: reference_."
+msgstr "AN ALIAS MUST NAME A KNOWN TARGET: `REFERENCE <unknown_>`_."
+
+msgid "two targets must not collapse: alpha_ and beta_."
+msgstr "TWO TARGETS MUST NOT COLLAPSE: alpha_ AND alpha_."

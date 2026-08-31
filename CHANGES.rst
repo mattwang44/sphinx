@@ -13,6 +13,11 @@ Bugs fixed
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
 
+* #14162: Fix spurious ``i18n.inconsistent_references`` warnings when
+  translators translate the display text or the target name of a hyperlink
+  reference.
+  Patch by Matt Wang.
+
 
 Release 9.1.0 (released Dec 31, 2025)
 =====================================

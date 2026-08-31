@@ -179,6 +179,8 @@ def test_text_inconsistency_warnings(app: SphinxTestApp) -> None:
         '\n* reference FOR reference.\n'
         '\n* ORPHAN REFERENCE: I18N WITH REFS INCONSISTENCY.\n'
         '\n* the [refs] [translations] [order] is ignored.\n'
+        '\n* AN ALIAS MUST NAME A KNOWN TARGET: REFERENCE.\n'
+        '\n* TWO TARGETS MUST NOT COLLAPSE: alpha AND alpha.\n'
         '\n[1] THIS IS A AUTO NUMBERED FOOTNOTE.\n'
         '\n[ref2] THIS IS A CITATION.\n'
         '\n[100] THIS IS A NUMBERED FOOTNOTE.\n'
@@ -224,6 +226,20 @@ def test_text_inconsistency_warnings(app: SphinxTestApp) -> None:
             'reftype': 'references',
             'original': '\\[\\]',
             'translated': "\\['`I18N WITH REFS INCONSISTENCY`_'\\]",
+        }
+        # an embedded alias naming a target that exists nowhere
+        + warning_fmt
+        % {
+            'reftype': 'references',
+            'original': "\\['reference_'\\]",
+            'translated': "\\['`REFERENCE <unknown_>`_'\\]",
+        }
+        # two distinct targets collapsed into one
+        + warning_fmt
+        % {
+            'reftype': 'references',
+            'original': "\\['alpha_', 'beta_'\\]",
+            'translated': "\\['alpha_', 'alpha_'\\]",
         }
     )
     assert re.search(expected_warning_expr, warnings), (
@@ -411,6 +427,35 @@ def test_text_refs_reordered_no_warning(app: SphinxTestApp) -> None:
     assert not re.search(unexpected_warning_expr, warnings), (
         f'Unexpected warning found: {warnings!r}'
     )
+
+
+@sphinx_intl
+@pytest.mark.sphinx('text', testroot='intl')
+@pytest.mark.test_params(shared_result='test_intl_basic')
+def test_text_translated_refs_no_warning(app: SphinxTestApp) -> None:
+    """Translating a reference is not an inconsistency.
+
+    Translators translate the display text of a hyperlink, add or drop the
+    embedded alias form (```text <target_>`_``), and aim an alias at a section
+    title that is itself translated.  The documents below cover all of these,
+    and none of them may report ``i18n.inconsistent_references``.
+    """
+    app.build()
+    warnings = getwarning(app.warning)
+    for docname in (
+        'external_links',
+        'footnote',
+        'label_target',
+    ):
+        assert not re.search(
+            rf'/{docname}\.txt:\d+: WARNING: inconsistent', warnings
+        ), f'Unexpected warning for {docname}.txt: {warnings!r}'
+
+    # Case C-5 of refs.txt splits one reference into two.  That changes the
+    # number of references, so it is the one case there that stays inconsistent.
+    refs_warnings = re.findall(r'/refs\.txt:\d+: WARNING: inconsistent[^\n]*', warnings)
+    assert len(refs_warnings) == 1, refs_warnings
+    assert "'`TRANS <X TIPS_>`_', '`LATION <X TIPS_>`_'" in refs_warnings[0]
 
 
 @sphinx_intl

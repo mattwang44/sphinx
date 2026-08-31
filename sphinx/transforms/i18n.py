@@ -48,6 +48,15 @@ logger = logging.getLogger(__name__)
 EXCLUDED_PENDING_XREF_ATTRIBUTES = ('refexplicit',)
 
 
+def _has_embedded_alias(ref: nodes.Element) -> bool:
+    """Return True if *ref* names its target with an embedded alias.
+
+    ``text <target_>`_`` states the target explicitly, whereas ``target_``
+    and ```target`_`` derive it from the display text.
+    """
+    return nodes.fully_normalize_name(ref.astext()) != ref['refname']
+
+
 def _publish_msgstr(
     source: str,
     source_path: str,
@@ -150,14 +159,23 @@ class _NodeUpdater:
         new_ref_keys.sort(key=hash)
 
         if not self.noqa and old_ref_keys != new_ref_keys:
-            old_ref_rawsources = [ref.rawsource for ref in old_refs]
-            new_ref_rawsources = [ref.rawsource for ref in new_refs]
-            logger.warning(
-                warning_msg.format(old_ref_rawsources, new_ref_rawsources),
-                location=self.node,
-                type='i18n',
-                subtype='inconsistent_references',
-            )
+            self.report_inconsistent_references(old_refs, new_refs, warning_msg)
+
+    def report_inconsistent_references(
+        self,
+        old_refs: Sequence[nodes.Element],
+        new_refs: Sequence[nodes.Element],
+        warning_msg: str,
+    ) -> None:
+        """Report references that the translation failed to preserve."""
+        old_ref_rawsources = [ref.rawsource for ref in old_refs]
+        new_ref_rawsources = [ref.rawsource for ref in new_refs]
+        logger.warning(
+            warning_msg.format(old_ref_rawsources, new_ref_rawsources),
+            location=self.node,
+            type='i18n',
+            subtype='inconsistent_references',
+        )
 
     def update_title_mapping(self) -> bool:
         processed = False  # skip flag
@@ -282,17 +300,40 @@ class _NodeUpdater:
         is_refnamed_ref = NodeMatcher(nodes.reference, refname=Any)
         old_refs = list(is_refnamed_ref.findall(self.node))
         new_refs = list(is_refnamed_ref.findall(self.patch))
-        self.compare_references(
-            old_refs,
-            new_refs,
-            __(
-                'inconsistent references in translated message.'
-                ' original: {0}, translated: {1}'
-            ),
-        )
-        old_ref_names = [r['refname'] for r in old_refs]
-        new_ref_names = [r['refname'] for r in new_refs]
-        orphans = [*({*old_ref_names} - {*new_ref_names})]
+        old_refnames = {r['refname'] for r in old_refs}
+        new_refnames = {r['refname'] for r in new_refs}
+
+        # A refname is derived from the display text unless an embedded alias
+        # states it explicitly, so a translated refname is expected and cannot
+        # be compared -- the orphan fix-up below maps it back to the original.
+        # Three things must still hold.
+        if not self.noqa and (
+            # The fix-up pairs references up one by one, ...
+            len(old_refs) != len(new_refs)
+            # ... and cannot do so if the translation merged two targets into
+            # one, or split one into two.
+            or len(old_refnames) != len(new_refnames)
+            # An embedded alias names its target explicitly, so a target that
+            # exists neither in the original message nor in the document (a
+            # translated section title, say) is a mistake: the fix-up would
+            # silently redirect it to an unrelated orphan instead of failing.
+            or any(
+                _has_embedded_alias(ref)
+                and ref['refname'] not in old_refnames
+                and not self.document.has_name(ref['refname'])
+                for ref in new_refs
+            )
+        ):
+            self.report_inconsistent_references(
+                old_refs,
+                new_refs,
+                __(
+                    'inconsistent references in translated message.'
+                    ' original: {0}, translated: {1}'
+                ),
+            )
+
+        orphans = [*(old_refnames - new_refnames)]
         for newr in new_refs:
             if not self.document.has_name(newr['refname']):
                 # Maybe refname is translated but target is not translated.
