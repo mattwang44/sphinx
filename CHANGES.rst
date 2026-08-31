@@ -15,7 +15,7 @@ Bugs fixed
 
 * #14162: Fix spurious ``i18n.inconsistent_references`` warnings when
   translators translate the display text or the target name of a hyperlink
-  reference.
+  reference, or translate a glossary term used in a ``:term:`` role.
   Patch by Matt Wang.
 
 

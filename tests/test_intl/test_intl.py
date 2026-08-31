@@ -436,16 +436,19 @@ def test_text_translated_refs_no_warning(app: SphinxTestApp) -> None:
     """Translating a reference is not an inconsistency.
 
     Translators translate the display text of a hyperlink, add or drop the
-    embedded alias form (```text <target_>`_``), and aim an alias at a section
-    title that is itself translated.  The documents below cover all of these,
-    and none of them may report ``i18n.inconsistent_references``.
+    embedded alias form (```text <target_>`_``), aim an alias at a section
+    title that is itself translated, and translate a glossary term along with
+    the glossary.  The documents below cover all of these, and none of them
+    may report ``i18n.inconsistent_references``.
     """
     app.build()
     warnings = getwarning(app.warning)
     for docname in (
         'external_links',
         'footnote',
+        'glossary_terms',
         'label_target',
+        'role_xref',
     ):
         assert not re.search(
             rf'/{docname}\.txt:\d+: WARNING: inconsistent', warnings

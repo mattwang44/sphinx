@@ -48,6 +48,14 @@ logger = logging.getLogger(__name__)
 EXCLUDED_PENDING_XREF_ATTRIBUTES = ('refexplicit',)
 
 
+#: Stand-in comparison key for any glossary term reference.
+_GLOSSARY_TERM = object()
+
+
+def _is_glossary_term(node: nodes.Element) -> bool:
+    return (node['refdomain'], node['reftype']) == ('std', 'term')
+
+
 def _has_embedded_alias(ref: nodes.Element) -> bool:
     """Return True if *ref* names its target with an embedded alias.
 
@@ -403,21 +411,21 @@ class _NodeUpdater:
                 ' original: {0}, translated: {1}'
             ),
             # Compare by reftarget only, allowing translated display text.
-            key_func=lambda ref: ref.get('reftarget'),
+            # Glossary terms are exempt because the glossary itself is
+            # translated: make_glossary_term() registers the translated term as
+            # the target, so ``:term:`translated term``` resolves.  For the same
+            # reason get_ref_key() below declines to restore their reftarget.
+            key_func=lambda ref: (
+                _GLOSSARY_TERM if _is_glossary_term(ref) else ref.get('reftarget')
+            ),
         )
 
         xref_reftarget_map: dict[tuple[str, str, str] | None, dict[str, Any]] = {}
 
         def get_ref_key(node: addnodes.pending_xref) -> tuple[str, str, str] | None:
-            case = node['refdomain'], node['reftype']
-            if case == ('std', 'term'):
+            if _is_glossary_term(node):
                 return None
-            else:
-                return (
-                    node['refdomain'],
-                    node['reftype'],
-                    node['reftarget'],
-                )
+            return node['refdomain'], node['reftype'], node['reftarget']
 
         for old in old_xrefs:
             key = get_ref_key(old)
